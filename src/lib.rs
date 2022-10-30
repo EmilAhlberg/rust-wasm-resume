@@ -1,6 +1,9 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Request, RequestInit, RequestMode, Response, Window};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -15,7 +18,8 @@ extern {
 
 #[wasm_bindgen]
 pub fn greet(name: &str) {
-    alert(format!("Hello {}", name).as_str());
+    run();
+    //alert(format!("Hello {}", name).as_str());
 }
 
 
@@ -37,44 +41,43 @@ impl fmt::Display for Resume {
 }
 
 #[wasm_bindgen]
-impl Resume {
-    pub fn new() -> Resume {
-        let width = 64;
-        let height = 64;
-        let content = "test".to_string();
+pub fn add_heading() -> Result<(), JsValue> {
+    let window = web_sys::window().expect("no window found");
+    let document = window.document().expect("no document on window");
+    let body = document.body().expect("no body on document");
 
-        //let cells = (0..width * height)
-        //    .map(|i| {
-        //        if i % 2 == 0 || i % 7 == 0 {
-        //            Cell::Alive
-        //        } else {
-        //            Cell::Dead
-        //        }
-        //    })
-        //    .collect();
+    let heading = document.create_element("h1")?;
+    heading.set_inner_html("This heading was created from Rust!");
 
-        Resume {
-            width,
-            height,
-            content,
-        }
-    }
+    body.append_child(&heading)?;
 
-    pub fn render(&self) -> String {
-        self.content.to_string()
-    }
+    Ok(())
+}
 
-    fn read(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.content = "d1234s".to_string();
-        let f = std::fs::File::open("resume.yaml")?;
-        let d: String = serde_yaml::from_reader(f)?;
-        self.content = "YAML".to_string();
-        //println!("Read YAML string: {}", d);
-        Ok(())
-    }
+#[wasm_bindgen]
+pub async fn run() -> Result<JsValue, JsValue> {
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+    opts.mode(RequestMode::Cors);
 
-    pub fn tick(&mut self) {
-        //self.content= "next".to_string();
-        Self::read(self);
-    }
+    let url = "https://raw.githubusercontent.com/EmilAhlberg/web-multiplayer-client/main/.github/dependabot.yml";
+
+    let request = Request::new_with_str_and_init(&url, &opts)?;
+
+    request
+        .headers()
+        .set("Accept", "application/vnd.github.v3+json")?;
+
+    let window = web_sys::window().unwrap();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+
+    // `resp_value` is a `Response` object.
+    assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into().unwrap();
+
+    // Convert this other `Promise` into a rust `Future`.
+    let json = JsFuture::from(resp.json()?).await?;
+
+    // Send the JSON response back to JS.
+    Ok(json)
 }
