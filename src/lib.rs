@@ -27,7 +27,7 @@ macro_rules! console_log {
     // `bare_bones`
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
-
+    
 
 #[wasm_bindgen]
 extern {
@@ -76,8 +76,50 @@ struct Node {
 
 fn read(s: String)->  Result<(), serde_yaml::Error> {
     console_log!("hej{}",s);
-    let deser: Vec<Node> = serde_yaml::from_str(&s)?;
+    let ss = r#"---
+    - title: "resume"
+      experience: "Sn1"
+    - Sn1: "Lala"
+    "#;
+    console_log!("{}",s);
+    console_log!("{}",ss);
+    let deser: Vec<Node> = serde_yaml::from_str(&ss)?;
     println!("{:#?}", deser);
+    
+    
+
+    
+    
+    let x = deser[0].extras.get("experience").ok_or(&String::from("Hello")).unwrap();
+    //&s[..]
+    
+    add_heading_test(x);
+
+    //console_log!("{}", x);
+    //match x {
+    //    Ok(v) => {
+    //        console_log!("okss");
+    //        //Ok(());
+    //    },
+    //    Err(e) => {
+    //        console_log!("error {e:?}");
+    //        //Ok(());
+    //    },
+    //}
+
+    
+    Ok(())
+}
+
+#[wasm_bindgen]
+pub fn add_heading_test(message: &str) -> Result<(), JsValue> { 
+    let window = web_sys::window().expect("no window found");
+    let document = window.document().expect("no document on window");
+    let body = document.body().expect("no body on document");
+
+    let heading = document.create_element("h1")?;
+    heading.set_inner_html(message);
+    body.append_child(&heading)?;
     Ok(())
 }
 
