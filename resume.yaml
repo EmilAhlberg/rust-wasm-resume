@@ -1,3 +1,12 @@
-title: resume
-name: Emil Ahlberg
-education: lorem ipsum
+title: "resume"
+name: "Emil Ahlberg"
+education: "lorem ipsum"
+projects: [
+  "123",
+  "456",
+  "890"
+]
+nested:
+  nest1: "test"
+  nest2:
+    nest3: test
