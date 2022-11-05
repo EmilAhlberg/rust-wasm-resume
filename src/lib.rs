@@ -6,6 +6,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, RequestMode, Response, Window};
 use serde_yaml::Mapping;
+use serde_yaml::Value;
+
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
@@ -27,7 +29,7 @@ macro_rules! console_log {
     // `bare_bones`
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
-    
+
 
 #[wasm_bindgen]
 extern {
@@ -53,7 +55,7 @@ pub async fn greet(name: &str) {
         Ok(v) => buildResume(v),
         Err(e) => println!("error {e:?}"),
     }
-    alert(format!("Hello {}", name).as_str());
+    //alert(format!("Hello {}", name).as_str());
 }
 
 fn buildResume(s:String) {
@@ -68,51 +70,37 @@ fn buildResume(s:String) {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Node {
-    supported_by : Option<Vec<String>>,
-    #[serde(flatten)]
-    extras: HashMap<String, String>,
+struct Yaml {
+    title: String,
+    //#[serde(rename = "do")]
+    education: Option<String>,
+    name: Option<String>,
+    projects: Option<Vec<String>>,
+    //#[serde(flatten)]
+    //extras: HashMap<String, String>,
 }
 
 fn read(s: String)->  Result<(), serde_yaml::Error> {
     console_log!("hej{}",s);
-    let ss = r#"---
-    - title: "resume"
-      experience: "Sn1"
-    - Sn1: "Lala"
-    "#;
-    console_log!("{}",s);
-    console_log!("{}",ss);
-    let deser: Vec<Node> = serde_yaml::from_str(&ss)?;
-    println!("{:#?}", deser);
-    
-    
+    let my_yaml: Yaml = serde_yaml::from_str(&s)?;
+    console_log!("{:#?}", my_yaml);
 
+    add_heading(my_yaml.education.unwrap().as_str());
     
-    
-    let x = deser[0].extras.get("experience").ok_or(&String::from("Hello")).unwrap();
-    //&s[..]
-    
-    add_heading_test(x);
-
-    //console_log!("{}", x);
-    //match x {
-    //    Ok(v) => {
-    //        console_log!("okss");
-    //        //Ok(());
-    //    },
-    //    Err(e) => {
-    //        console_log!("error {e:?}");
-    //        //Ok(());
-    //    },
-    //}
-
+    let tt = my_yaml.projects.unwrap();
+    console_log!("after iter");
+    console_log!("{:#?}", tt);
+    let iter = tt.iter();
+    for val in iter {
+        add_heading(val);
+        println!("sanity");
+    }
     
     Ok(())
 }
 
 #[wasm_bindgen]
-pub fn add_heading_test(message: &str) -> Result<(), JsValue> { 
+pub fn add_heading(message: &str) -> Result<(), JsValue> { 
     let window = web_sys::window().expect("no window found");
     let document = window.document().expect("no document on window");
     let body = document.body().expect("no body on document");
@@ -124,26 +112,12 @@ pub fn add_heading_test(message: &str) -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn add_heading() -> Result<(), JsValue> {
-    let window = web_sys::window().expect("no window found");
-    let document = window.document().expect("no document on window");
-    let body = document.body().expect("no body on document");
-
-    let heading = document.create_element("h1")?;
-    heading.set_inner_html("This heading was created from Rust!");
-
-    body.append_child(&heading)?;
-
-    Ok(())
-}
-
-#[wasm_bindgen]
 pub async fn run() -> Result<String, JsValue> {
     let mut opts = RequestInit::new();
     opts.method("GET");
     opts.mode(RequestMode::Cors);
 
-    let url = "https://raw.githubusercontent.com/EmilAhlberg/web-multiplayer-client/main/.github/dependabot.yml";
+    let url = "https://raw.githubusercontent.com/EmilAhlberg/rust-wasm-resume/main/resume.yaml";
 
     let request = Request::new_with_str_and_init(&url, &opts)?;
 
